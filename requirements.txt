@@ -1,0 +1,5 @@
+python-telegram-bot[webhooks]==20.8
+python-dotenv
+httpx
+
+# rebuild-2025-11-26
