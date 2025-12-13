@@ -1,5 +1,6 @@
 import telegram
 print("PTB VERSION:", telegram.__version__)
+
 import logging
 import os
 from dotenv import load_dotenv
@@ -35,10 +36,14 @@ def main():
 
     port = int(os.getenv("PORT", 8080))
 
-    # Увеличенные таймауты
-    request = HTTPXRequest(connect_timeout=30, read_timeout=120)
+    # HTTPX с увеличенными таймаутами
+    request = HTTPXRequest(
+        connect_timeout=30,
+        read_timeout=120,
+        write_timeout=120,
+    )
 
-    # --- создаем приложение ---
+    # --- создаём приложение ---
     app: Application = (
         ApplicationBuilder()
         .token(token)
@@ -57,12 +62,14 @@ def main():
 
     logger.info("🚀 Bot starting with webhook…")
 
-    # --- запуск webhook ---
+    # --- ВАЖНО: webhook path ---
+    WEBHOOK_PATH = "/webhook"
+
     app.run_webhook(
         listen="0.0.0.0",
         port=port,
-        url_path="",                # пустой = корень '/'
-        webhook_url=webhook_url,    # Railway URL
+        url_path=WEBHOOK_PATH,
+        webhook_url=webhook_url + WEBHOOK_PATH,
     )
 
 
