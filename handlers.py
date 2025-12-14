@@ -1382,15 +1382,36 @@ async def mod_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # --------------------- Универсальная отмена ---------------------
+from telegram import Update
+from telegram.ext import ConversationHandler, ContextTypes
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # 🔥 КРИТИЧНО — чистим данные пользователя
+    context.user_data.clear()
+
+    logger.info(
+        f"Conversation cancelled by user {update.effective_user.id}"
+    )
+
+    text = "🔄 Действие отменено. Начинаем заново."
+
     if update.message:
-        await update.message.reply_text("Действие отменено.")
+        await update.message.reply_text(text)
+
     elif update.callback_query:
-        q = update.callback_query; await q.answer()
+        q = update.callback_query
+        await q.answer()
         try:
-            await q.edit_message_text("Действие отменено.")
+            await q.edit_message_text(text)
         except Exception:
-            await context.bot.send_message(update.effective_user.id, "Действие отменено.")
+            await context.bot.send_message(
+                chat_id=update.effective_user.id,
+                text=text
+            )
+
     return ConversationHandler.END
 
 
@@ -1433,10 +1454,14 @@ async def comment_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --------------------- ConversationHandler ---------------------
 conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", start_command)],
+    entry_points=[
+        CommandHandler("start", start_command),
+    ],
+
     states={
-        # Новый этап приветствия перед LOCATION
-        GREETING: [CallbackQueryHandler(greeting_next, pattern="^greet_next$")],
+        GREETING: [
+            CallbackQueryHandler(greeting_next, pattern="^greet_next$")
+        ],
 
         LOCATION: [
             CallbackQueryHandler(location_chosen, pattern="^loc_"),
@@ -1444,22 +1469,19 @@ conv_handler = ConversationHandler(
             CallbackQueryHandler(location_back, pattern="^nav_back$"),
         ],
 
-
         POINT_TYPE: [
             CallbackQueryHandler(point_type_chosen, pattern=r"^(pt_|nav_)"),
         ],
-
 
         FISH_TYPE: [
             CallbackQueryHandler(fish_type_chosen, pattern=r"^(fish_|nav_)"),
         ],
 
-
         FISH_TYPE_TEXT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, fish_type_text)
         ],
 
-        FISHING_TYPE:[
+        FISHING_TYPE: [
             CallbackQueryHandler(fishing_type_chosen, pattern=r"^(ft_|nav_)"),
             CallbackQueryHandler(go_back, pattern="^go_back:FISH_TYPE$"),
             CallbackQueryHandler(go_next, pattern="^go_next:DETAIL$"),
@@ -1469,9 +1491,8 @@ conv_handler = ConversationHandler(
         DETAIL: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, fishing_detail_input),
             CallbackQueryHandler(go_back, pattern="^go_back:FISHING_TYPE$"),
-            CallbackQueryHandler(coords_start, pattern="^go_next:COORDS$")   # ← теперь вызывает coords_start!
+            CallbackQueryHandler(coords_start, pattern="^go_next:COORDS$")
         ],
-
 
         COORDS: [
             CallbackQueryHandler(coords_start, pattern="^go_next:COORDS$"),
@@ -1487,12 +1508,10 @@ conv_handler = ConversationHandler(
             CallbackQueryHandler(temp_chosen, pattern="^(temp_|go_)")
         ],
 
-
         PHOTOS: [
             MessageHandler(filters.PHOTO | filters.Document.IMAGE, photo_add),
             CallbackQueryHandler(photos_done_btn, pattern="^(go_|confirm_screenshots$)"),
         ],
-
 
         COMMENT: [
             CallbackQueryHandler(comment_chosen, pattern="^comment_|^go_"),
@@ -1511,9 +1530,17 @@ conv_handler = ConversationHandler(
 
         PREVIEW: [
             CallbackQueryHandler(confirm_publish, pattern="^confirm_publish$"),
-            CallbackQueryHandler(confirm_cancel,  pattern="^confirm_cancel$"),
+            CallbackQueryHandler(confirm_cancel, pattern="^confirm_cancel$"),
             CallbackQueryHandler(go_back, pattern="^go_back:AUTHOR$")
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
+
+    fallbacks=[
+        CommandHandler("start", cancel),   # 🔥 КРИТИЧНО
+        CommandHandler("cancel", cancel),
+    ],
+
+    conversation_timeout=300,   # 🔥 5 минут
+    per_message=False,
 )
+

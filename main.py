@@ -9,6 +9,7 @@ from telegram.ext import (
     Application,
     ApplicationBuilder,
     CallbackQueryHandler,
+    CommandHandler,
 )
 from telegram.request import HTTPXRequest
 
@@ -21,29 +22,32 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# 🔥 ТЕСТ: если это не срабатывает — webhook не доходит
+async def test_start(update, context):
+    logger.info("🔥 /start received")
+    await update.message.reply_text("Бот жив и принимает апдейты ✅")
+
+
 def main():
     init_db()
 
     token = os.getenv("TELEGRAM_BOT_TOKEN")
+    webhook_url = os.getenv("WEBHOOK_URL")
+    port = int(os.getenv("PORT", 8080))
+
     if not token:
         logger.error("❌ Нет TELEGRAM_BOT_TOKEN")
         return
 
-    webhook_url = os.getenv("WEBHOOK_URL")
     if not webhook_url:
         logger.error("❌ Нет WEBHOOK_URL")
         return
 
-    port = int(os.getenv("PORT", 8080))
-
-    # HTTPX с увеличенными таймаутами
     request = HTTPXRequest(
         connect_timeout=30,
         read_timeout=120,
-        write_timeout=120,
     )
 
-    # --- создаём приложение ---
     app: Application = (
         ApplicationBuilder()
         .token(token)
@@ -51,7 +55,8 @@ def main():
         .build()
     )
 
-    app.bot_data["MOD_CHAT_ID"] = os.getenv("MOD_CHAT_ID")
+    # 🔥 ОБЯЗАТЕЛЬНЫЙ ТЕСТОВЫЙ ХЕНДЛЕР
+    app.add_handler(CommandHandler("start", test_start), group=0)
 
     # Основной диалог
     app.add_handler(conv_handler)
@@ -62,14 +67,11 @@ def main():
 
     logger.info("🚀 Bot starting with webhook…")
 
-    # --- ВАЖНО: webhook path ---
-    WEBHOOK_PATH = "/webhook"
-
     app.run_webhook(
         listen="0.0.0.0",
         port=port,
-        url_path=WEBHOOK_PATH,
-        webhook_url=webhook_url + WEBHOOK_PATH,
+        url_path="webhook",        # ← путь ТОЛЬКО здесь
+        webhook_url=webhook_url,   # ← БЕЗ /webhook
     )
 
 
