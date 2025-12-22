@@ -285,8 +285,10 @@ async def photo_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
+# --------------------- Старт ---------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
+    context.user_data.clear()
 
     text = (
         "🎣 <b>Привет, рыбак!</b>\n"
@@ -303,12 +305,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Русская Рыбалка 4 — <b>Mazaii tv 🎣</b>"
     )
 
-    # 🔹 ВСЕГДА показываем приветствие
-    await update.message.reply_text(text, parse_mode="HTML")
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "📮 ПРЕДЛОЖИТЬ ПОСТ",
+                url="https://t.me/Mazaiibot?start=post"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🔍 ПОИСК ТОЧКИ",
+                url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
+            )
+        ]
+    ])
 
-    # 🔹 если нажали «Предложить пост»
+    # ✅ ВСЕГДА сначала приветствие
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=kb
+    )
+
+    # ✅ если нажали «Предложить пост»
     if args and args[0] == "post":
-        context.user_data.clear()
         context.user_data["photos"] = []
 
         await update.message.reply_text(
@@ -316,30 +336,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
             reply_markup=make_location_kb()
         )
-        return LOCATION   # ← ВАЖНО: возвращаем состояние
+        return LOCATION
 
-    # 🔹 обычный старт — остаёмся в GREETING
-    kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(
-                "📮 Предложить пост",
-                url="https://t.me/Mazaiibot?start=post"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🔍 Поиск точки",
-                url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
-            )
-        ]
-    ])
-
-    await update.message.reply_text(
-        "👇 Выберите действие:",
-        reply_markup=kb
-    )
-
-    return GREETING   # ❗ НЕ END
+    return ConversationHandler.END
 
 
 # --- ШАГ 1: выбор водоёма ---
@@ -1447,6 +1446,21 @@ async def greeting_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Подготовка данных, как при /start post
     context.user_data["photos"] = []
 
+# --------------------- Callback: Предложить пост ---------------------
+async def start_post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.clear()
+    context.user_data["photos"] = []
+
+    await query.edit_message_text(
+        "🎣 Шаг 1: Выберите водоём:",
+        reply_markup=attach_nav(make_location_kb(), None, "POINT_TYPE")
+    )
+
+    return LOCATION
+
     # Отправляем пользователю сообщение с клавиатурой выбора водоёма
     await query.message.reply_text(
         "🎣 Шаг 1: Выберите водоём:",
@@ -1471,8 +1485,8 @@ async def comment_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
 conv_handler = ConversationHandler(
     entry_points=[
         CommandHandler("start", start_command),
+        CallbackQueryHandler(start_post_callback, pattern="^start_post$")
     ],
-
     states={
         GREETING: [
             CallbackQueryHandler(greeting_next, pattern="^greet_next$")
@@ -1510,13 +1524,8 @@ conv_handler = ConversationHandler(
         ],
 
         COORDS: [
-            CallbackQueryHandler(coords_start, pattern="^go_next:COORDS$"),
-            CallbackQueryHandler(coords_chosen, pattern="^go_back:FISHING_TYPE$|^go_next:TEMP$"),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, coords_input)
-        ],
-
-        COORDS_TEXT: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, coords_input)
+            MessageHandler(filters.TEXT & ~filters.COMMAND, coords_input),
+            CallbackQueryHandler(coords_chosen, pattern="^go_next:TEMP$")
         ],
 
         TEMP: [
@@ -1549,13 +1558,6 @@ conv_handler = ConversationHandler(
             CallbackQueryHandler(go_back, pattern="^go_back:AUTHOR$")
         ],
     },
-
-    fallbacks=[
-        CommandHandler("start", cancel),   # 🔥 КРИТИЧНО
-        CommandHandler("cancel", cancel),
-    ],
-
-    conversation_timeout=300,   # 🔥 5 минут
-    per_message=False,
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
 
