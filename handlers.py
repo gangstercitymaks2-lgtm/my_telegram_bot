@@ -309,13 +309,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Русская Рыбалка 4 — <b>Mazaii tv 🎣</b>"
     )
 
-    # 🔹 ВСЕГДА отправляем приветствие
-    await update.message.reply_text(
-        text,
-        parse_mode="HTML"
-    )
+    await update.message.reply_text(text, parse_mode="HTML")
 
-    # 🔹 Если нажата кнопка «Предложить пост»
+    # 👉 ЕСЛИ нажата кнопка «Предложить пост»
     if args and args[0] == "post":
         context.user_data.clear()
         context.user_data["photos"] = []
@@ -325,9 +321,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
             reply_markup=make_location_kb()
         )
-        return LOCATION
+        return LOCATION   # 🔥 ВАЖНО: НЕ END
 
-    # 🔹 Иначе — просто показываем кнопки
+    # 👉 Обычный /start — просто кнопки, но диалог НЕ завершаем
     kb = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -348,7 +344,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb
     )
 
-    return ConversationHandler.END
+    return GREETING  # 👈 любое «нейтральное» состояние
 
 
 # --- ШАГ 1: выбор водоёма ---
