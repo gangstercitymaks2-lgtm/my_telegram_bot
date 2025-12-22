@@ -288,22 +288,12 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 # --------------------- Старт ---------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Отвечает на /start. Если пришёл аргумент 'post', запускает мастер создания поста,
-    иначе показывает приветствие с кнопкой «Предложить пост».
+    /start
+    Всегда показывает ПОЛНОЕ приветствие.
+    Если start=post → после приветствия запускает мастер создания поста.
     """
     args = context.args
 
-    # Если нажата ссылка https://t.me/ТвойБот?start=post
-    if args and args[0] == "post":
-        # сразу запускаем сценарий создания поста (без повторного приветствия)
-        context.user_data["photos"] = []
-        await update.message.reply_text(
-            "🎣 Шаг 1: Выберите водоём:",
-            reply_markup=make_location_kb()
-        )
-        return LOCATION
-
-    # 👉 обычный старт без аргументов — показываем новое приветствие
     text = (
         "🎣 <b>Привет, рыбак!</b>\n"
         "Добро пожаловать в место, где делятся удачей, опытом и самыми жирными трофеями!\n\n"
@@ -319,11 +309,45 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Русская Рыбалка 4 — <b>Mazaii tv 🎣</b>"
     )
 
+    # 🔹 ВСЕГДА отправляем приветствие
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML"
+    )
+
+    # 🔹 Если нажата кнопка «Предложить пост»
+    if args and args[0] == "post":
+        context.user_data.clear()
+        context.user_data["photos"] = []
+
+        await update.message.reply_text(
+            "🎣 <b>Шаг 1:</b> Выберите водоём:",
+            parse_mode="HTML",
+            reply_markup=make_location_kb()
+        )
+        return LOCATION
+
+    # 🔹 Иначе — просто показываем кнопки
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📮 Предложить пост", url="https://t.me/Mazaiibot?start=post")]
+        [
+            InlineKeyboardButton(
+                "📮 Предложить пост",
+                url="https://t.me/Mazaiibot?start=post"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🔍 Поиск точки",
+                url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
+            )
+        ]
     ])
 
-    await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+    await update.message.reply_text(
+        "👇 Выберите действие:",
+        reply_markup=kb
+    )
+
     return ConversationHandler.END
 
 
