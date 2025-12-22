@@ -285,13 +285,7 @@ async def photo_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --------------------- Старт ---------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    /start
-    Всегда показывает ПОЛНОЕ приветствие.
-    Если start=post → после приветствия запускает мастер создания поста.
-    """
     args = context.args
 
     text = (
@@ -309,9 +303,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Русская Рыбалка 4 — <b>Mazaii tv 🎣</b>"
     )
 
+    # 🔹 ВСЕГДА показываем приветствие
     await update.message.reply_text(text, parse_mode="HTML")
 
-    # 👉 ЕСЛИ нажата кнопка «Предложить пост»
+    # 🔹 если нажали «Предложить пост»
     if args and args[0] == "post":
         context.user_data.clear()
         context.user_data["photos"] = []
@@ -321,9 +316,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
             reply_markup=make_location_kb()
         )
-        return LOCATION   # 🔥 ВАЖНО: НЕ END
+        return LOCATION   # ← ВАЖНО: возвращаем состояние
 
-    # 👉 Обычный /start — просто кнопки, но диалог НЕ завершаем
+    # 🔹 обычный старт — остаёмся в GREETING
     kb = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -344,7 +339,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb
     )
 
-    return GREETING  # 👈 любое «нейтральное» состояние
+    return GREETING   # ❗ НЕ END
 
 
 # --- ШАГ 1: выбор водоёма ---
