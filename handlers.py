@@ -1545,6 +1545,6 @@ conv_handler = ConversationHandler(
     ],
 
     allow_reentry=True,
-    per_message=True,
+    per_message=False,
 )
 
