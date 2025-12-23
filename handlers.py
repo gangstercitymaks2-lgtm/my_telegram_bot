@@ -287,6 +287,9 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --------------------- Старт ---------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return GREETING
+
     text = (
         "🎣 <b>Привет, рыбак!</b>\n"
         "Добро пожаловать в место, где делятся удачей, опытом и самыми жирными трофеями!\n\n"
@@ -309,9 +312,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )]
     ])
 
-    await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=kb
+    )
 
-    return ConversationHandler.END
+    return GREETING
 
 
 # --- ШАГ 1: выбор водоёма ---
@@ -1428,8 +1435,7 @@ async def start_post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["photos"] = []
 
     await query.message.reply_text(
-        "🎣 <b>Шаг 1:</b> Выберите водоём:",
-        parse_mode="HTML",
+        "🎣 Шаг 1: Выберите водоём:",
         reply_markup=make_location_kb()
     )
 
@@ -1460,12 +1466,11 @@ async def comment_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
 conv_handler = ConversationHandler(
     entry_points=[
         CommandHandler("start", start_command),
-        CallbackQueryHandler(start_post_callback, pattern="^start_post$")
     ],
 
     states={
         GREETING: [
-            CallbackQueryHandler(greeting_next, pattern="^greet_next$")
+            CallbackQueryHandler(start_post_callback, pattern="^start_post$")
         ],
 
         LOCATION: [
@@ -1537,10 +1542,9 @@ conv_handler = ConversationHandler(
 
     fallbacks=[
         CommandHandler("cancel", cancel),
-        CommandHandler("start", start_command),  # 🔥 ФОЛБЭК НА /start
     ],
 
-    allow_reentry=True,   # 🔥 КЛЮЧЕВОЕ
-    per_message=True,    # 🔥 КЛЮЧЕВОЕ
+    allow_reentry=True,
+    per_message=True,
 )
 
