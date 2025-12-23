@@ -680,59 +680,75 @@ def make_coordinates_kb():
     ])
 
 async def coords_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Переход на шаг 5 — бот сразу предлагает ввести координаты (пример, без кнопок)."""
     q = update.callback_query
     await q.answer()
-    await q.edit_message_text("📍 Шаг 5: Введите координаты (например: 56:123):")
-    return COORDS_TEXT
+
+    await q.edit_message_text(
+        "📍 <b>Шаг 5:</b> Введите координаты\n"
+        "Пример: <code>56:123</code>",
+        parse_mode="HTML"
+    )
+
+    return COORDS   # ✅ ТОЛЬКО COORDS
 
 async def coords_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка ввода координат пользователем."""
     text = update.message.text.strip()
 
-    # Строгая проверка: только формат 56:123
     if not re.fullmatch(r"-?\d{1,3}:\d{1,6}", text):
-        await update.message.reply_text("⚠️ Неверный формат координат.\nВведите в формате: 56:123")
-        return COORDS_TEXT
+        await update.message.reply_text(
+            "⚠️ Неверный формат.\nВведите в формате: 56:123"
+        )
+        return COORDS   # 🔁 остаёмся тут
 
-    # Сохраняем координаты
     context.user_data["coords"] = text
     save_draft(update.effective_user.id, json.dumps(context.user_data))
 
-    # Показываем кнопки только после успешного ввода
     await update.message.reply_text(
-        f"✅ Координаты сохранены: {text}\n\nТеперь нажмите «✅ Подтвердить», чтобы продолжить.",
+        f"✅ Координаты сохранены: <b>{text}</b>\n\n"
+        "Нажмите «Продолжить»",
+        parse_mode="HTML",
         reply_markup=make_coordinates_kb()
     )
-    return COORDS
+
+    return COORDS   # ❗ ОСТАЁМСЯ В COORDS, ждём кнопку
 
 async def coords_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Навигация: назад и подтвердить."""
+    """Навигация на шаге координат."""
     q = update.callback_query
     await q.answer()
     data = q.data
 
+    # ⬅️ Назад к типу ловли
     if data == "go_back:FISHING_TYPE":
         await q.edit_message_text(
             "🎣 Шаг 4: Выберите тип ловли:",
-            reply_markup=make_fishing_type_kb(selected=context.user_data.get("fishing_type"))
+            reply_markup=make_fishing_type_kb(
+                selected=context.user_data.get("fishing_type")
+            )
         )
         return FISHING_TYPE
 
+    # ➡️ Далее — к температуре
     if data == "go_next:TEMP":
         if "coords" not in context.user_data:
-            await q.answer("Введите координаты ⛔", show_alert=True)
-            return COORDS
+            await q.answer("❗ Сначала введите координаты", show_alert=True)
+            return COORDS   # ⛔ остаёмся тут
 
         save_draft(update.effective_user.id, json.dumps(context.user_data))
+
         await q.edit_message_text(
-            "🌡 Шаг 6: Укажите температуру воды:",
-            reply_markup=attach_nav(make_temp_kb(), "COORDS", "COMMENT")
+            "🌡 <b>Шаг 6:</b> Укажите температуру воды:",
+            parse_mode="HTML",
+            reply_markup=attach_nav(
+                make_temp_kb(),
+                "COORDS",
+                "COMMENT"
+            )
         )
         return TEMP
 
+    # 🔁 Если что-то пошло не так — не ломаем сценарий
     return COORDS
-
 
 # ---------- ШАГ 6: Температура ----------
 def make_temp_kb(selected=None):
@@ -1507,8 +1523,9 @@ conv_handler = ConversationHandler(
 
         COORDS: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, coords_input),
-            CallbackQueryHandler(coords_chosen, pattern="^go_next:TEMP$")
+            CallbackQueryHandler(coords_chosen, pattern=r"^go_"),
         ],
+
 
         TEMP: [
             CallbackQueryHandler(temp_chosen, pattern="^(temp_|go_)")
