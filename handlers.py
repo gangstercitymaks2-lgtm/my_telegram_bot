@@ -287,9 +287,6 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --------------------- Старт ---------------------
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    context.user_data.clear()
-
     text = (
         "🎣 <b>Привет, рыбак!</b>\n"
         "Добро пожаловать в место, где делятся удачей, опытом и самыми жирными трофеями!\n\n"
@@ -301,42 +298,18 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎣 Вид рыбы\n"
         "🖼️ Скриншоты (до 10 шт.)\n"
         "🧢 Твой игровой ник\n\n"
-        "Огромное <b>СПАСИБО</b> за вклад в развитие канала!\n"
         "Русская Рыбалка 4 — <b>Mazaii tv 🎣</b>"
     )
 
     kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(
-                "📮 ПРЕДЛОЖИТЬ ПОСТ",
-                url="https://t.me/Mazaiibot?start=post"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🔍 ПОИСК ТОЧКИ",
-                url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
-            )
-        ]
+        [InlineKeyboardButton("📮 Предложить пост", callback_data="start_post")],
+        [InlineKeyboardButton(
+            "🔍 Поиск точки",
+            url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
+        )]
     ])
 
-    # ✅ ВСЕГДА сначала приветствие
-    await update.message.reply_text(
-        text,
-        parse_mode="HTML",
-        reply_markup=kb
-    )
-
-    # ✅ если нажали «Предложить пост»
-    if args and args[0] == "post":
-        context.user_data["photos"] = []
-
-        await update.message.reply_text(
-            "🎣 <b>Шаг 1:</b> Выберите водоём:",
-            parse_mode="HTML",
-            reply_markup=make_location_kb()
-        )
-        return LOCATION
+    await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
 
     return ConversationHandler.END
 
@@ -1446,7 +1419,7 @@ async def greeting_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Подготовка данных, как при /start post
     context.user_data["photos"] = []
 
-# --------------------- Callback: Предложить пост ---------------------
+# --------------------- Запуск сценария ---------------------
 async def start_post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -1454,12 +1427,14 @@ async def start_post_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data.clear()
     context.user_data["photos"] = []
 
-    await query.edit_message_text(
-        "🎣 Шаг 1: Выберите водоём:",
-        reply_markup=attach_nav(make_location_kb(), None, "POINT_TYPE")
+    await query.message.reply_text(
+        "🎣 <b>Шаг 1:</b> Выберите водоём:",
+        parse_mode="HTML",
+        reply_markup=make_location_kb()
     )
 
     return LOCATION
+
 
     # Отправляем пользователю сообщение с клавиатурой выбора водоёма
     await query.message.reply_text(
