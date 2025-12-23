@@ -307,10 +307,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("📮 Предложить пост", callback_data="start_post")],
-        [InlineKeyboardButton(
-            "🔍 Поиск точки",
-            url="https://t.me/s/MAZAII_TV?q=%23водоем_r4map"
-        )]
     ])
 
     await update.message.reply_text(
