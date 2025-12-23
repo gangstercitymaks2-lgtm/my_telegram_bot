@@ -55,9 +55,6 @@ def main():
         .build()
     )
 
-    # 🔥 ОБЯЗАТЕЛЬНЫЙ ТЕСТОВЫЙ ХЕНДЛЕР
-    app.add_handler(CommandHandler("start", test_start), group=0)
-
     # Основной диалог
     app.add_handler(conv_handler)
 
