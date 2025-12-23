@@ -1487,6 +1487,7 @@ conv_handler = ConversationHandler(
         CommandHandler("start", start_command),
         CallbackQueryHandler(start_post_callback, pattern="^start_post$")
     ],
+
     states={
         GREETING: [
             CallbackQueryHandler(greeting_next, pattern="^greet_next$")
@@ -1558,6 +1559,13 @@ conv_handler = ConversationHandler(
             CallbackQueryHandler(go_back, pattern="^go_back:AUTHOR$")
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
+
+    fallbacks=[
+        CommandHandler("cancel", cancel),
+        CommandHandler("start", start_command),  # 🔥 ФОЛБЭК НА /start
+    ],
+
+    allow_reentry=True,   # 🔥 КЛЮЧЕВОЕ
+    per_message=True,    # 🔥 КЛЮЧЕВОЕ
 )
 
